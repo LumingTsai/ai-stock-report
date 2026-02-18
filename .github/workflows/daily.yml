@@ -1,0 +1,39 @@
+name: Generate Daily Stock Report
+
+on:
+  # 手动触发 + 每天UTC 0点（北京时间8点）自动运行
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          pip install yfinance ta requests
+          
+      - name: Run analysis
+        env:
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+        run: python analyze.py
+        
+      - name: Convert Markdown to HTML
+        run: |
+          sudo apt-get install -y pandoc
+          pandoc report.md -o index.html --metadata title="AI股票日报"
+          
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          publish_branch: gh-pages
